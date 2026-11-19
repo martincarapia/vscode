@@ -1536,6 +1536,21 @@ suite('ClaudeAgent', () => {
 		});
 	});
 
+	test('fromSdkModelInfo names an alias row by the version its description leads with', () => {
+		// Shapes observed from SDK 0.3.304 `supportedModels()`: alias rows carry the
+		// family as `displayName` and the resolved version at the head of `description`.
+		const cases: readonly (readonly [name: string, model: ModelInfo, expected: string])[] = [
+			['alias with versioned description', { value: 'opus', resolvedModel: 'claude-opus-5-5', displayName: 'Opus', description: 'Opus 5.5 · Best for everyday, complex tasks' }, 'Opus 5.5'],
+			['alias whose description does not refine the name', { value: 'sonnet', displayName: 'Sonnet', description: 'Efficient for routine tasks' }, 'Sonnet'],
+			['description equal to the name', { value: 'haiku', displayName: 'Haiku', description: 'Haiku · Fastest for quick answers' }, 'Haiku'],
+			['explicit id row', { value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: 'desc' }, 'Claude Sonnet 4.5'],
+			['empty description', { value: 'fable', displayName: 'Fable', description: '' }, 'Fable'],
+		];
+		assert.deepStrictEqual(
+			Object.fromEntries(cases.map(([name, model]) => [name, fromSdkModelInfo(model, 'claude').name])),
+			Object.fromEntries(cases.map(([name, , expected]) => [name, expected])));
+	});
+
 	test('signed-in probe flips inferred-native to proxy', async () => {
 		// The fix for the startup catch-22: with the SDK
 		// reporting a Claude account, a signed-OUT user resolves to native — which

@@ -164,6 +164,26 @@ function isSdkDefaultModel(m: ModelInfo): boolean {
 }
 
 /**
+ * The picker label for a native SDK model row.
+ *
+ * The SDK names its alias rows by family alone (`displayName: 'Opus'`) and
+ * puts the version the alias currently resolves to at the head of the
+ * description (`'Opus 5.5 · Best for everyday, complex tasks'`). The picker
+ * renders only the name, so with the bare family a user cannot tell which
+ * Opus they are about to use — and the alias silently moves when Anthropic
+ * repoints it. Surface the description's leading segment when it refines the
+ * display name; anything else (an explicit id row, a free-form description)
+ * keeps the SDK's own name.
+ */
+function nativeModelDisplayName(m: ModelInfo): string {
+	const lead = m.description?.split(' · ')[0]?.trim();
+	if (lead && lead !== m.displayName && lead.startsWith(m.displayName)) {
+		return lead;
+	}
+	return m.displayName;
+}
+
+/**
  * Project an SDK {@link ModelInfo} into the agent host's
  * {@link IAgentModelInfo} surface for the native (BYO-Anthropic) transport.
  * Carries NO commercial metadata (no `policyState`, no pricing `_meta`) —
@@ -178,7 +198,7 @@ export function fromSdkModelInfo(m: ModelInfo, provider: AgentProvider): IAgentM
 		// SDK-canonical id (`m.value`, e.g. `claude-sonnet-4-5-20250929`). Native
 		// ids are SDK format end to end; `toSdkModelId` is identity at this seam.
 		id: m.value,
-		name: m.displayName,
+		name: nativeModelDisplayName(m),
 		supportsVision: false,
 		...(configSchema ? { configSchema } : {}),
 	};
