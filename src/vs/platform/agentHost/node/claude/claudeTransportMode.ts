@@ -74,11 +74,20 @@ export function resolveClaudeTransportMode(inputs: IClaudeTransportModeInputs): 
  * honestly: a `claude login` credential lives in the macOS keychain, invisible
  * to `process.env` and `~/.claude/settings.json` alike.
  *
- * The two branches must NOT be collapsed. `apiProvider` reports `'firstParty'`
+ * The branches must NOT be collapsed. `apiProvider` reports `'firstParty'`
  * even for an empty home directory, so it is a presence signal for nobody — it
  * is consulted only to spot a *third-party* backend (Bedrock, Vertex, a
  * gateway), whose credential fields the SDK documents as absent because auth is
  * external. Requiring a credential field there would lock every one of them out.
+ *
+ * A first-party credential reports through one of three shapes, and each must
+ * be accepted on its own:
+ *
+ *  - a `claude login` subscription (claude.ai Pro / Max / Team) reports the
+ *    account itself — `email`, `organization`, `subscriptionType` — and
+ *    **omits** `tokenSource` and `apiKeySource` entirely;
+ *  - a `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_AUTH_TOKEN` reports `tokenSource`;
+ *  - an API key reports `apiKeySource` and leaves `tokenSource` at `'none'`.
  *
  * Says *configured*, not *working*: verifying would cost a billable request per
  * check, and the failure being fixed here is genuinely set-up users locked out.
@@ -88,6 +97,11 @@ export function isClaudeAccountSetUp(account: AccountInfo | undefined): boolean 
 		return false;
 	}
 	if (account.apiProvider !== undefined && account.apiProvider !== 'firstParty') {
+		return true;
+	}
+	// A subscription login identifies the account rather than a credential
+	// source; with nothing configured none of these fields is present.
+	if (account.subscriptionType !== undefined || account.email !== undefined || account.organization !== undefined) {
 		return true;
 	}
 	// `tokenSource` spells "no credential" as `'none'` rather than absence;

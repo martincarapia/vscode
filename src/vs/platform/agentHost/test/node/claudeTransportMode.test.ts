@@ -46,8 +46,12 @@ suite('claudeTransportMode', () => {
 			// third-party.
 			['nothing configured, no provider field', { tokenSource: 'none' }, false],
 			['empty report', {}, false],
-			// `claude login` / `CLAUDE_CODE_OAUTH_TOKEN` — the keychain case no
-			// filesystem check could ever see.
+			// `claude login` with a claude.ai subscription (SDK 0.3.304, macOS
+			// keychain credential): the SDK identifies the *account* and omits
+			// both credential-source fields, so a source-only rule reads a
+			// fully set-up Max user as "nothing configured".
+			['claude.ai subscription login', { email: 'user@example.com', organization: 'user@example.com\'s Organization', subscriptionType: 'Claude Max', apiProvider: 'firstParty' }, true],
+			// `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_AUTH_TOKEN` reports a source.
 			['oauth token', { tokenSource: 'ANTHROPIC_AUTH_TOKEN', apiProvider: 'firstParty' }, true],
 			// An API key reports through `apiKeySource` and leaves `tokenSource`
 			// at its `'none'` sentinel, so testing `tokenSource` alone misses it.
